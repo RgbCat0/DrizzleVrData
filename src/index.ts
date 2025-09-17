@@ -3,8 +3,17 @@ import { db } from "./db.js";
 import { users } from "./schema.js";
 let scriptDone = false;
 async function main() {
+
+    // let user enter name
+    const name1 = await new Promise((resolve) => {
+        process.stdin.once("data", (data) => {
+            resolve(data.toString().trim());
+        });
+    });
+
+    console.log(`Hello, ${name1}!`);
   // insert a row
-  await db.insert(users).values({ name: "Jesper", meow: "Meow!" });
+  await db.insert(users).values({ name: `${name1}`, meow: "Meow!" });
 
   // fetch rows
   const result = await db.select().from(users);
