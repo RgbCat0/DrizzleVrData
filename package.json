@@ -1,0 +1,27 @@
+{
+  "dependencies": {
+    "drizzle-orm": "^0.44.5",
+    "mysql2": "^3.15.0"
+  },
+  "name": "drizzlevrdata",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "@types/node": "^24.5.1",
+    "drizzle-kit": "^0.31.4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  },
+  "scripts": {
+    "start": "ts-node-esm src/index.ts",
+    "migrate": "drizzle-kit migrate",
+    "generate": "drizzle-kit generate",
+    "reGenAndStart": "npm run migrate && npm run generate && npm run start"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module"
+}
