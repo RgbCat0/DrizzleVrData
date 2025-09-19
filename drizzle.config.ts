@@ -8,6 +8,6 @@ export default {
     host: "localhost",
     user: "drizzle",
     password: "drizzle123",
-    database: "testdb",
+    database: "vrdata",
   },
 } satisfies Config;

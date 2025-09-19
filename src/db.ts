@@ -5,7 +5,7 @@ const pool = mysql.createPool({
   host: "localhost",
   user: "drizzle",
   password: "drizzle123",
-  database: "testdb",
+  database: "vrdata",
 });
 
 export const db = drizzle(pool);
