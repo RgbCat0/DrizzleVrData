@@ -6,10 +6,17 @@ import {
   sessions,
   controllerEvents,
 } from "./schema";
+import { eq } from "drizzle-orm";
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+// test connection
+app.get("/ping", (req, res) => {
+  console.log("Ping received");
+  res.send("pong");
+});
 
 // --- Sessions ---
 app.post("/sessions", async (req, res) => {
@@ -23,7 +30,7 @@ app.post("/sessions", async (req, res) => {
         metadata: metadata ?? {},
       })
       .$returningId();
-
+console.log("Created session with ID:", session.id);
     res.json({ success: true, sessionId: session.id });
   } catch (err) {
     console.error(err);
@@ -31,48 +38,28 @@ app.post("/sessions", async (req, res) => {
   }
 });
 
-// --- Batch insert positions ---
-app.post("/positions", async (req, res) => {
-  try {
-    const { sessionId, positions } = req.body;
-
-    await db.insert(controllerEvents.).values(
-      positions.map((p: any) => ({
-        sessionId,
-        controller: p.controller,
-        timestamp: new Date(p.timestamp),
-        posX: p.pos[0],
-        posY: p.pos[1],
-        posZ: p.pos[2],
-        rotX: p.rot[0],
-        rotY: p.rot[1],
-        rotZ: p.rot[2],
-        rotW: p.rot[3],
-      }))
-    );
-
-    res.json({ success: true, count: positions.length });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: "Failed to insert positions" });
-  }
-});
 
 // --- Batch insert events ---
 app.post("/events", async (req, res) => {
   try {
     const { sessionId, events } = req.body;
+    // body has enum controller: "left" | "right" that doesnt insert correctly into the database it gives 0 (left) and  1 (right) instead of the string values which needs to be converted to string
+    const stringifiedEvents = events.map((e: any) => ({
+      ...e,
+      controller: e.controller === 0 ? "left" : "right"
+    }));
 
     await db.insert(controllerEvents).values(
-      events.map((e: any) => ({
+      stringifiedEvents.map((e: any) => ({
         sessionId,
         controller: e.controller,
         eventType: e.eventType,
         timestamp: new Date(e.timestamp),
-        controllerPositions: e.controllerPositions ?? {},
-        details: e.details ?? {},
+        controllerPositions: e.controllerPositions ?? null,
+        details: e.details ?? null,
       }))
     );
+    console.log(`Inserted ${events.length} events for session ${sessionId}`);
 
     res.json({ success: true, count: events.length });
   } catch (err) {
@@ -85,22 +72,26 @@ app.post("/events", async (req, res) => {
 app.get("/sessions/:id", async (req, res) => {
   try {
     const sessionId = Number(req.params.id);
-    const positions = await db
-      .select()
-      .from(controllerPositions)
-      .where(controllerPositions.sessionId.eq(sessionId));
-
     const events = await db
-      .select()
+      .select({
+        id: controllerEvents.id,
+        sessionId: controllerEvents.sessionId,
+        controller: controllerEvents.controller,
+        eventType: controllerEvents.eventType,
+        timestamp: controllerEvents.timestamp,
+        details: controllerEvents.details,
+      })
       .from(controllerEvents)
-      .where(controllerEvents.sessionId.eq(sessionId));
+      .where(eq(controllerEvents.sessionId, sessionId));
+      console.log(`Fetched ${events.length} events for session ${sessionId}`);
 
-    res.json({ sessionId, positions, events });
+    res.json({ sessionId, events });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, error: "Failed to fetch session" });
   }
 });
+
 
 // Start server
 const PORT = 3000;
